@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Math Snake</title>
+    <link rel="stylesheet" href="style.css" />
+  `
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+          </style>
+  </head>
+  <body>
+    <div class="game-container">
+      <div id="welcome-screen">
+        <h1>MATH SNAKE</h1>
+        <p>
+          Guide your snake to eat the correct answers!
+        </p>
+        <p>Avoid wrong answers and don't hit the walls!</p>
+        <button id="start-btn" class="btn">START GAME</button>
+        <div class="controls-hint">Use Arrow Keys or WASD to Move</div>
+      </div>
+
+      <div id="loading-screen" style="display: none">
+        <h2>GETTING READY...</h2>
+        <div id="loading-bar-container">
+          <div id="loading-bar"></div>
+        </div>
+        <div id="loading-text">Loading game components</div>
+      </div>
+
+      <div id="game-over-screen" style="display: none">
+        <h1>GAME OVER</h1>
+        <p id="final-score">Score: 0</p>
+        <p>Can you solve faster next time?</p>
+        <button id="restart-btn" class="btn">PLAY AGAIN</button>
+      </div>
+
+      <div id="game-screen">
+        <div id="info-panel">
+          <div id="question-container">
+            <div id="question">5 + 3 = ?</div>
+          </div>
+          <div id="stats-container">
+            <div id="score">Score: 0</div>
+            <div id="lives">Lives: 3</div>
+          </div>
+        </div>
+        <div id="game-board"></div>
+      </div>
+
+      
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
