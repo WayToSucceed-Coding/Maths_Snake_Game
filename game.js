@@ -1,10 +1,6 @@
+
+
 // Game Constants
-const BOARD_WIDTH = 640;
-const BOARD_HEIGHT = 540;
-const GRID_SIZE = 20;
-const GRID_WIDTH = BOARD_WIDTH / GRID_SIZE;
-const GRID_HEIGHT = BOARD_HEIGHT / GRID_SIZE;
-const INITIAL_SPEED = 180; // Slower speed for calculation time
 const MAX_APPLES = 5;
 const MIN_APPLE_DISTANCE = 5;
 const MAX_LIVES = 3;
@@ -21,8 +17,24 @@ let score = 0;
 let lives = MAX_LIVES;
 let currentQuestion = {};
 let isGameActive = false;
-let currentSpeed = INITIAL_SPEED;
+var initialSpeed = 180; // Slower speed for calculation time
+let currentSpeed = initialSpeed;
 let usedValues = new Set(); // Track used apple values
+// Touch variables
+let touchStartX = 0;
+let touchStartY = 0;
+const minSwipeDistance = 50; // Minimum pixels to count as a swipe
+let lastTouchTime = 0;
+let gridSizeX, gridSizeY;
+
+let grid_size; // Will be calculated dynamically
+let grid_width;
+let grid_height;
+const min_grid_size = 20; // Minimum cell size in pixels
+const max_grid_cells_x = 32; // Max horizontal cells (original was 640/20=32)
+const max_grid_cells_y = 27; // Max vertical cells (original was 540/20=27)
+
+
 
 // DOM Elements
 const gameBoard = document.getElementById("game-board");
@@ -38,27 +50,140 @@ const questionDisplay = document.getElementById("question");
 const scoreDisplay = document.getElementById("score");
 const livesDisplay = document.getElementById("lives");
 const finalScoreDisplay = document.getElementById("final-score");
+const musicControl = document.getElementById("music-control");
+let isMusicPlaying=false
+
+musicControl.addEventListener("click",()=>{
+  toggleMusic()
+})
+
+// Toggle function
+function toggleMusic() {
+  isMusicPlaying = !isMusicPlaying;
+  const icon = musicControl.querySelector("i");
+  
+  if (isMusicPlaying) {
+    backgroundSound.loop = true;
+    backgroundSound.play().catch(e => console.log("Audio play prevented:", e));
+    icon.classList.replace("fa-volume-mute", "fa-volume-up");
+  } else {
+    backgroundSound.pause();
+    icon.classList.replace("fa-volume-up", "fa-volume-mute");
+  }
+}
+
+// Initialize
+function initMusic() {
+  backgroundSound.volume = 0.8;
+  toggleMusic(); // Start muted
+}
+
+// Add this early in your script
+document.body.style.overflow = 'hidden'; // Prevent page scrolling
+
+function calculateGridDimensions() {
+  const availableWidth = gameBoard.clientWidth;
+  const availableHeight = gameBoard.clientHeight;
+
+  grid_size = Math.max(
+    min_grid_size,
+    Math.min(
+      Math.floor(availableWidth / max_grid_cells_x),
+      Math.floor(availableHeight / max_grid_cells_y)
+    )
+  );
+
+  // Use visible cells, not maximum possible
+  grid_width = Math.floor(availableWidth / grid_size);
+  grid_height 
+= Math.floor(availableHeight / grid_size);
+
+  gameBoard.style.setProperty('--grid-size', `${grid_size}px`);
+}
+function handleResize() {
+
+  // Clamp snake position to new grid
+  const head = snake[0];
+  snake = snake.map(segment => ({
+    x: Math.min(segment.x, grid_width - 1),
+    y: Math.min(segment.y, grid_height 
+    - 1)
+  }));
+
+  // Filter out-of-bounds apples
+  apples = apples.filter(apple =>
+    apple.x < grid_width && apple.y < grid_height
+  );
+
+  // Maintain minimum apples
+  while (apples.length < MAX_APPLES) {
+    createApple(false);
+  }
+
+  draw();
+}
+
+// Debounce the resize handler
+const debouncedResize = debounce(handleResize, 200);
+window.addEventListener('resize', debouncedResize);
+
+// Replace your BOARD_WIDTH/HEIGHT with:
+const getGameSize = () => {
+  const maxWidth = Math.min(window.innerWidth, 640); // Cap at 640px width
+  const maxHeight = Math.min(window.innerHeight, 540); // Cap at 540px height
+  return {
+    width: maxWidth,
+    height: maxHeight - 100 // Reserve space for UI
+  };
+};
+
 
 // Audio Elements
 const correctSound = new Audio(
-  "https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"
+  "assets/sounds/correct.mp3"
 );
 const wrongSound = new Audio(
   "https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"
 );
 const gameOverSound = new Audio(
-  "https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-2759.mp3"
+  "assets/sounds/game-over.mp3"
 );
+
+const gameStartSound= new Audio("assets/sounds/game-start.mp3")
+
+const backgroundSound=new Audio("assets/sounds/background.mp3")
+
+
 
 // Start game setup
 startBtn.addEventListener("click", startGame);
 restartBtn.addEventListener("click", restartGame);
 document.addEventListener("keydown", changeDirection);
+startBtn.addEventListener("touchstart", startGame);
+restartBtn.addEventListener("touchstart", restartGame);
+
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints;
+
+if (isTouchDevice) {
+  // You might want to adjust game speed for touch devices
+  initialSpeed = 200; // Slightly slower for touch controls
+}
+
+// Debounce function to limit rapid calls
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
 
 function startGame() {
+  
   welcomeScreen.style.display = "none";
   loadingScreen.style.display = "flex";
-
+  
+  gameStartSound.play()
   let progress = 0;
   const loadingMessages = [
     "Creating math problems...",
@@ -87,6 +212,7 @@ function startGame() {
         loadingScreen.style.display = "none";
         gameScreen.style.display = "block";
         initGame();
+        initMusic()
       }, 300);
     }
   }, 30);
@@ -94,10 +220,65 @@ function startGame() {
 
 function restartGame() {
   gameOverScreen.style.display = "none";
+  gameStartSound.play()
   initGame();
 }
 
+// Replace your current setup with these high-performance listeners
+function setupSwipeControls() {
+  const board = document.getElementById('game-board');
+  
+  // Use passive: true for touchmove (better scrolling performance)
+  board.addEventListener('touchstart', handleTouchStart, { passive: false });
+  board.addEventListener('touchmove', handleTouchMove, { passive: true }); // Changed to passive
+  board.addEventListener('touchend', handleTouchEnd, { passive: false });
+  
+  // Prevent scroll only when actively swiping
+  let isSwiping = false;
+  board.addEventListener('touchstart', () => isSwiping = true);
+  board.addEventListener('touchend', () => isSwiping = false);
+  document.addEventListener('touchmove', (e) => {
+    if (isSwiping) e.preventDefault();
+  }, { passive: false });
+}
+
+// Modified touch handlers
+function handleTouchStart(e) {
+  e.preventDefault(); // Critical for iOS
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}
+
+function handleTouchMove(e) {
+  e.preventDefault(); // Block scroll during swipe
+}
+
+function handleTouchEnd(e) {
+  const now = Date.now();
+  if (now - lastTouchTime < 30 || !isGameActive) return;
+
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  // Only register swipes >40px movement
+  if (Math.max(absDx, absDy) < 40) return;
+
+  // Prioritize dominant direction
+  if (absDx > absDy) {
+    if (dx > 0 && direction !== "left") nextDirection = "right";
+    else if (dx < 0 && direction !== "right") nextDirection = "left";
+  } else {
+    if (dy > 0 && direction !== "up") nextDirection = "down";
+    else if (dy < 0 && direction !== "down") nextDirection = "up";
+  }
+}
 function initGame() {
+  calculateGridDimensions(); // First thing!
+  setupSwipeControls()
+
   // Reset game state
   snake = [];
   apples = [];
@@ -106,15 +287,16 @@ function initGame() {
   direction = "right";
   nextDirection = "right";
   isGameActive = true;
-  currentSpeed = INITIAL_SPEED;
+  currentSpeed = initialSpeed;
   usedValues = new Set(); // Reset used values
 
   // Clear the game board
   gameBoard.innerHTML = "";
 
   // Create initial snake
-  const initialX = Math.floor(GRID_WIDTH / 4);
-  const initialY = Math.floor(GRID_HEIGHT / 2);
+  const initialX = Math.floor(grid_width / 4);
+  const initialY = Math.floor(grid_height 
+  / 2);
 
   for (let i = 0; i < 3; i++) {
     snake.push({ x: initialX - i, y: initialY });
@@ -162,9 +344,9 @@ function gameLoop() {
   // Wall collision
   if (
     head.x < 0 ||
-    head.x >= GRID_WIDTH ||
+    head.x >= grid_width ||
     head.y < 0 ||
-    head.y >= GRID_HEIGHT
+    head.y >= grid_height
   ) {
     gameOver();
     return;
@@ -220,9 +402,9 @@ function gameLoop() {
   if (correctAppleEaten) {
     showPointsAnimation(head.x, head.y);
     // Add a new correct apple when one is eaten
-    apples=[]
+    apples = []
     createApple(true);
-   
+
   }
 
   // Ensure we maintain at least GUARANTEED_CORRECT_APPLES correct answers
@@ -244,36 +426,24 @@ function gameLoop() {
 function draw() {
   gameBoard.innerHTML = "";
 
-  // Draw snake with gradient effect
+  // Snake drawing (updated to use dynamic grid_size)
   snake.forEach((part, index) => {
     const snakePart = document.createElement("div");
-    snakePart.className =
-      index === 0 ? "snake-part snake-head" : "snake-part";
-    snakePart.style.left = `${part.x * GRID_SIZE}px`;
-    snakePart.style.top = `${part.y * GRID_SIZE}px`;
-
-    // Body gradient effect
-    if (index > 0) {
-      const hue = 160 + ((index * 2) % 60);
-      snakePart.style.background = `hsl(${hue}, 85%, 55%)`;
-    }
-
+    snakePart.className = index === 0 ? "snake-part snake-head glow" : "snake-part";
+    snakePart.style.left = `${part.x * grid_size}px`;
+    snakePart.style.top = `${part.y * grid_size}px`;
     gameBoard.appendChild(snakePart);
   });
 
-  // Draw apples
-  apples.forEach((apple) => {
+  // Apple drawing
+  apples.forEach(apple => {
     const appleElement = document.createElement("div");
-    appleElement.className = "apple"       
-    appleElement.style.left = `${apple.x * GRID_SIZE}px`;
-    appleElement.style.top = `${apple.y * GRID_SIZE}px`;
+    appleElement.className = "apple glow";
+    appleElement.style.left = `${apple.x * grid_size}px`;
+    appleElement.style.top = `${apple.y * grid_size}px`;
     appleElement.textContent = apple.value;
-    appleElement.classList.add("glow");
-    
-
     gameBoard.appendChild(appleElement);
   });
-
   // Draw animations
   document.querySelectorAll(".point-animation").forEach((el) => {
     gameBoard.appendChild(el);
@@ -284,8 +454,8 @@ function showPointsAnimation(x, y) {
   const animation = document.createElement("div");
   animation.className = "point-animation";
   animation.textContent = "+10";
-  animation.style.left = `${x * GRID_SIZE + 10}px`;
-  animation.style.top = `${y * GRID_SIZE - 10}px`;
+  animation.style.left = `${x * grid_size + 10}px`;
+  animation.style.top = `${y * grid_size - 10}px`;
   gameBoard.appendChild(animation);
 
   setTimeout(() => {
@@ -314,20 +484,18 @@ function createApple(forceCorrect) {
   let attempts = 0;
   const maxAttempts = 100;
 
+  // Calculate safe boundaries (leave 1 cell margin)
+  const maxX = grid_width - 2;
+  const maxY = grid_height 
+- 2;
+
   do {
     overlapping = false;
     attempts++;
 
-    // Ensure apples stay within game board boundaries
-    const x = Math.max(
-      0,
-      Math.min(GRID_WIDTH - 5, Math.floor(Math.random() * GRID_WIDTH))
-    );
-    const y = Math.max(
-      0,
-      Math.min(GRID_HEIGHT - 5, Math.floor(Math.random() * GRID_HEIGHT))
-    );
-
+    // Ensure we stay within current grid bounds
+    const x = Math.max(1, Math.min(maxX, Math.floor(Math.random() * maxX)));
+    const y = Math.max(1, Math.min(maxY, Math.floor(Math.random() * maxY)));
     let value;
     if (forceCorrect) {
       value = currentQuestion.answer;
@@ -372,7 +540,7 @@ function createApple(forceCorrect) {
     for (const apple of apples) {
       const distance = Math.sqrt(
         Math.pow(apple.x - newApple.x, 2) +
-          Math.pow(apple.y - newApple.y, 2)
+        Math.pow(apple.y - newApple.y, 2)
       );
 
       if (distance < MIN_APPLE_DISTANCE) {
@@ -433,7 +601,7 @@ function updateLives() {
 
 function gameOver() {
   isGameActive = false;
-  clearInterval(gameInterval);
+  clearInterval(gameInterval)
   gameOverSound.play();
   finalScoreDisplay.textContent = `Score: ${score}`;
   gameOverScreen.style.display = "flex";

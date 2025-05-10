@@ -5,21 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Math Snake</title>
     <link rel="stylesheet" href="style.css" />
-  `
+    `
     <link
       href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
-    <style>
-          </style>
+
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style></style>
   </head>
   <body>
     <div class="game-container">
       <div id="welcome-screen">
         <h1>MATH SNAKE</h1>
-        <p>
-          Guide your snake to eat the correct answers!
-        </p>
+        <p>Guide your snake to eat the correct answers!</p>
         <p>Avoid wrong answers and don't hit the walls!</p>
         <button id="start-btn" class="btn">START GAME</button>
         <div class="controls-hint">Use Arrow Keys or WASD to Move</div>
@@ -45,6 +44,13 @@
           <div id="question-container">
             <div id="question">5 + 3 = ?</div>
           </div>
+           <button
+            id="music-control"
+            class="music-btn"
+            aria-label="Toggle music">
+            <i class="fas fa-volume-up"></i>
+          </button>
+          
           <div id="stats-container">
             <div id="score">Score: 0</div>
             <div id="lives">Lives: 3</div>
@@ -53,8 +59,7 @@
         <div id="game-board"></div>
       </div>
 
-      
-    </div>
+    
 
     <script src="game.js"></script>
   </body>

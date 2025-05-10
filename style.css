@@ -555,10 +555,7 @@ body::before {
     z-index: 2;
 }
 
-.apple:hover {
-    transform: scale(1.2);
-    animation: none;
-}
+
 
 @keyframes pulse {
     0% { transform: scale(1); }
@@ -721,4 +718,33 @@ body::before {
   font-size: 15rem;
   color: #ffcc00;
   transform: rotate(15deg);
+}
+
+.music-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.music-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+/* Hide the button on welcome/game over screens */
+#welcome-screen .music-btn,
+#game-over-screen .music-btn {
+  display: none;
 }
