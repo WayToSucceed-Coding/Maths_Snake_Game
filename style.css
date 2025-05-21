@@ -748,3 +748,18 @@ body::before {
 #game-over-screen .music-btn {
   display: none;
 }
+
+/* Show mobile controls by default (mobile-first approach) */
+.desktop-controls {
+  display: none;
+}
+
+/* On larger screens (non-touch devices), show keyboard controls */
+@media (hover: hover) and (pointer: fine) {
+  .mobile-controls {
+    display: none;
+  }
+  .desktop-controls {
+    display: block;
+  }
+}

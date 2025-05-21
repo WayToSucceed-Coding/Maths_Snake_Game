@@ -17,7 +17,7 @@ let score = 0;
 let lives = MAX_LIVES;
 let currentQuestion = {};
 let isGameActive = false;
-var initialSpeed = 180; // Slower speed for calculation time
+var initialSpeed = 350; // Slower speed for calculation time
 let currentSpeed = initialSpeed;
 let usedValues = new Set(); // Track used apple values
 // Touch variables
@@ -164,11 +164,6 @@ restartBtn.addEventListener("touchstart", restartGame);
 
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints;
 
-if (isTouchDevice) {
-  // You might want to adjust game speed for touch devices
-  initialSpeed = 200; // Slightly slower for touch controls
-}
-
 // Debounce function to limit rapid calls
 function debounce(func, wait) {
   let timeout;
@@ -183,7 +178,6 @@ function startGame() {
   welcomeScreen.style.display = "none";
   loadingScreen.style.display = "flex";
   
-  gameStartSound.play()
   let progress = 0;
   const loadingMessages = [
     "Creating math problems...",
@@ -230,7 +224,7 @@ function setupSwipeControls() {
   
   // Use passive: true for touchmove (better scrolling performance)
   board.addEventListener('touchstart', handleTouchStart, { passive: false });
-  board.addEventListener('touchmove', handleTouchMove, { passive: true }); // Changed to passive
+  //board.addEventListener('touchmove', handleTouchMove, { passive: true }); // Changed to passive
   board.addEventListener('touchend', handleTouchEnd, { passive: false });
   
   // Prevent scroll only when actively swiping
@@ -249,13 +243,9 @@ function handleTouchStart(e) {
   touchStartY = e.touches[0].clientY;
 }
 
-function handleTouchMove(e) {
-  e.preventDefault(); // Block scroll during swipe
-}
-
 function handleTouchEnd(e) {
   const now = Date.now();
-  if (now - lastTouchTime < 30 || !isGameActive) return;
+  if (now - lastTouchTime < 10 || !isGameActive) return;
 
   const touch = e.changedTouches[0];
   const dx = touch.clientX - touchStartX;
@@ -276,6 +266,7 @@ function handleTouchEnd(e) {
   }
 }
 function initGame() {
+  gameStartSound.play()
   calculateGridDimensions(); // First thing!
   setupSwipeControls()
 
