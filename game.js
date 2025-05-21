@@ -95,8 +95,7 @@ function calculateGridDimensions() {
 
   // Use visible cells, not maximum possible
   grid_width = Math.floor(availableWidth / grid_size);
-  grid_height 
-= Math.floor(availableHeight / grid_size);
+  grid_height = Math.floor(availableHeight / grid_size);
 
   gameBoard.style.setProperty('--grid-size', `${grid_size}px`);
 }
@@ -214,7 +213,6 @@ function startGame() {
 
 function restartGame() {
   gameOverScreen.style.display = "none";
-  gameStartSound.play()
   initGame();
 }
 
@@ -264,6 +262,7 @@ function handleTouchEnd(e) {
     if (dy > 0 && direction !== "up") nextDirection = "down";
     else if (dy < 0 && direction !== "down") nextDirection = "up";
   }
+
 }
 function initGame() {
   gameStartSound.play()
