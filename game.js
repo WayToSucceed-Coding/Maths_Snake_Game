@@ -15,9 +15,14 @@ let score = 0;
 let lives = MAX_LIVES;
 let currentQuestion = {};
 let isGameActive = false;
-var initialSpeed = 350; // Slower speed for calculation time
+var initialSpeed = 650; // Slower speed for calculation time
 let currentSpeed = initialSpeed;
 let usedValues = new Set(); // Track used apple values
+// Touch variables
+let touchStartX = 0;
+let touchStartY = 0;
+const minSwipeDistance = 50; // Minimum pixels to count as a swipe
+let lastTouchTime = 0;
 let gridSizeX, gridSizeY;
 let grid_size; // Will be calculated dynamically
 let grid_width;
@@ -25,6 +30,8 @@ let grid_height;
 const min_grid_size = 20; // Minimum cell size in pixels
 const max_grid_cells_x = 32; // Max horizontal cells (original was 640/20=32)
 const max_grid_cells_y = 27; // Max vertical cells (original was 540/20=27)
+
+
 
 // DOM Elements
 const gameBoard = document.getElementById("game-board");
@@ -42,39 +49,11 @@ const livesDisplay = document.getElementById("lives");
 const finalScoreDisplay = document.getElementById("final-score");
 const musicControl = document.getElementById("music-control");
 let isMusicPlaying = false
-const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints;
-
-startBtn.addEventListener("click", startGame);
-restartBtn.addEventListener("click", restartGame);
-document.addEventListener("keydown", changeDirection);
-startBtn.addEventListener("touchstart", startGame);
-restartBtn.addEventListener("touchstart", restartGame);
-
-// Audio Elements
-const correctSound = new Audio(
-  "assets/sounds/correct.mp3"
-);
-const wrongSound = new Audio(
-  "https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"
-);
-const gameOverSound = new Audio(
-  "assets/sounds/game-over.mp3"
-);
-
-const gameStartSound = new Audio("assets/sounds/game-start.mp3")
-
-const backgroundSound = new Audio("assets/sounds/background.mp3")
 
 musicControl.addEventListener("click", () => {
   toggleMusic()
 })
 
-if(isTouchDevice){
-  console.log('Touch device detected.')
-}
-else{
-  console.log('Touch device not detected.')
-}
 // Toggle function
 function toggleMusic() {
   isMusicPlaying = !isMusicPlaying;
@@ -117,140 +96,88 @@ function calculateGridDimensions() {
 
   gameBoard.style.setProperty('--grid-size', `${grid_size}px`);
 }
-// function handleResize() {
-
-//   // Clamp snake position to new grid
-//   const head = snake[0];
-//   snake = snake.map(segment => ({
-//     x: Math.min(segment.x, grid_width - 1),
-//     y: Math.min(segment.y, grid_height
-//       - 1)
-//   }));
-
-//   // Filter out-of-bounds apples
-//   apples = apples.filter(apple =>
-//     apple.x < grid_width && apple.y < grid_height
-//   );
-
-//   // Maintain minimum apples
-//   while (apples.length < MAX_APPLES) {
-//     createApple(false);
-//   }
-
-//   draw();
-// }
-
-// // Debounce the resize handler
-// const debouncedResize = debounce(handleResize, 200);
-// window.addEventListener('resize', debouncedResize);
-
-// // Replace your BOARD_WIDTH/HEIGHT with:
-// const getGameSize = () => {
-//   const maxWidth = Math.min(window.innerWidth, 640); // Cap at 640px width
-//   const maxHeight = Math.min(window.innerHeight, 540); // Cap at 540px height
-//   return {
-//     width: maxWidth,
-//     height: maxHeight - 100 // Reserve space for UI
-//   };
-// };
-
-
-// // Debounce function to limit rapid calls
-// function debounce(func, wait) {
-//   let timeout;
-//   return function (...args) {
-//     clearTimeout(timeout);
-//     timeout = setTimeout(() => func.apply(this, args), wait);
-//   };
-// }
-
-function setupTapControls() {
-  if (!isTouchDevice) return;
-
-  const controlsLayer = document.createElement('div');
-  controlsLayer.id = 'controls-layer';
-  gameBoard.appendChild(controlsLayer);
-
-  // Track touch/swipe data
-  let touchStartX = 0;
-  let touchStartY = 0;
-  const swipeThreshold = 30; // minimum distance for swipe
-
-  // Add touch event listeners for swipe
-  controlsLayer.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  }, { passive: false });
-
-  controlsLayer.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-  }, { passive: false });
-
-  controlsLayer.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-
-    // Determine if it's a horizontal or vertical swipe
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      // Horizontal swipe
-      if (Math.abs(deltaX) > swipeThreshold) {
-        if (deltaX > 0 && direction !== 'left') {
-          handleDirectionChange('right');
-        } else if (deltaX < 0 && direction !== 'right') {
-          handleDirectionChange('left');
-        }
-      }
-    } else {
-      // Vertical swipe
-      if (Math.abs(deltaY) > swipeThreshold) {
-        if (deltaY > 0 && direction !== 'up') {
-          handleDirectionChange('down');
-        } else if (deltaY < 0 && direction !== 'down') {
-          handleDirectionChange('up');
-        }
-      }
-    }
-  }, { passive: false });
-
-  // Define touch zones (left/right/up/down) for tap controls
- const zones = [
-  { class: 'tap-left', dir: 'left', area: [0, '30%', '30%', '40%'] },      // left middle
-  { class: 'tap-right', dir: 'right', area: ['70%', '30%', '30%', '40%'] }, // right middle
-  { class: 'tap-up', dir: 'up', area: ['30%', 0, '40%', '30%'] },          // top center
-  { class: 'tap-down', dir: 'down', area: ['30%', '70%', '40%', '30%'] }   // bottom center
-];
-
-  zones.forEach(({ class: className, dir, area }) => {
-    const zone = document.createElement('div');
-    zone.className = `tap-zone ${className}`;
-    zone.style.left = area[0];
-    zone.style.top = area[1];
-    zone.style.width = area[2];
-    zone.style.height = area[3];
-    zone.dataset.direction = dir;
-    
-    zone.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      handleDirectionChange(dir);
-    });
-    
-    controlsLayer.appendChild(zone);
-  });
-}
-
-function handleDirectionChange(newDirection) {
+function handleResize() {
   if (!isGameActive) return;
 
-  // Prevent reversing direction
-  if (newDirection === 'left' && direction !== 'right') nextDirection = 'left';
-  else if (newDirection === 'right' && direction !== 'left') nextDirection = 'right';
-  else if (newDirection === 'up' && direction !== 'down') nextDirection = 'up';
-  else if (newDirection === 'down' && direction !== 'up') nextDirection = 'down';
+  // Recalculate grid dimensions first
+  calculateGridDimensions();
+
+  // Only clamp if snake exists and game is active
+  if (snake.length > 0) {
+    snake = snake.map(segment => ({
+      x: Math.min(segment.x, grid_width - 1),
+      y: Math.min(segment.y, grid_height - 1)
+    }));
+  }
+
+  // Filter out-of-bounds apples
+  apples = apples.filter(apple =>
+    apple.x < grid_width && apple.y < grid_height
+  );
+
+  // Regenerate apples if needed
+  while (apples.length < MAX_APPLES) {
+    createApple(false);
+  }
+
+  // Recreate touch controls for new dimensions
+  if (isTouchDevice) {
+    const existingControls = document.getElementById('controls-layer');
+    if (existingControls) {
+      existingControls.remove();
+      setupTapControls();
+    }
+  }
+
+  draw();
+}
+
+// Debounce the resize handler
+const debouncedResize = debounce(handleResize, 200);
+window.addEventListener('resize', debouncedResize);
+
+// Replace your BOARD_WIDTH/HEIGHT with:
+const getGameSize = () => {
+  const maxWidth = Math.min(window.innerWidth, 640); // Cap at 640px width
+  const maxHeight = Math.min(window.innerHeight, 540); // Cap at 540px height
+  return {
+    width: maxWidth,
+    height: maxHeight - 100 // Reserve space for UI
+  };
+};
+
+
+// Audio Elements
+const correctSound = new Audio(
+  "assets/sounds/correct.mp3"
+);
+const wrongSound = new Audio(
+  "https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"
+);
+const gameOverSound = new Audio(
+  "assets/sounds/game-over.mp3"
+);
+
+const gameStartSound = new Audio("assets/sounds/game-start.mp3")
+
+const backgroundSound = new Audio("assets/sounds/background.mp3")
+
+// Start game setup
+startBtn.addEventListener("click", startGame);
+restartBtn.addEventListener("click", restartGame);
+document.addEventListener("keydown", changeDirection);
+startBtn.addEventListener("touchstart", startGame);
+restartBtn.addEventListener("touchstart", restartGame);
+
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints;
+
+// Debounce function to limit rapid calls
+function debounce(func, wait) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
 }
 
 function startGame() {
@@ -297,11 +224,58 @@ function restartGame() {
   initGame();
 }
 
-function initGame() {
+// Replace your current setup with these high-performance listeners
+function setupSwipeControls() {
+  const board = document.getElementById('game-board');
 
-  
+  // Use passive: true for touchmove (better scrolling performance)
+  board.addEventListener('touchstart', handleTouchStart, { passive: false });
+  //board.addEventListener('touchmove', handleTouchMove, { passive: true }); // Changed to passive
+  board.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+  // Prevent scroll only when actively swiping
+  let isSwiping = false;
+  board.addEventListener('touchstart', () => isSwiping = true);
+  board.addEventListener('touchend', () => isSwiping = false);
+  document.addEventListener('touchmove', (e) => {
+    if (isSwiping) e.preventDefault();
+  }, { passive: false });
+}
+
+// Modified touch handlers
+function handleTouchStart(e) {
+  e.preventDefault(); // Critical for iOS
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}
+
+function handleTouchEnd(e) {
+  const now = Date.now();
+  if (now - lastTouchTime < 10 || !isGameActive) return;
+
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  // Only register swipes >40px movement
+  if (Math.max(absDx, absDy) < 40) return;
+
+  // Prioritize dominant direction
+  if (absDx > absDy) {
+    if (dx > 0 && direction !== "left") nextDirection = "right";
+    else if (dx < 0 && direction !== "right") nextDirection = "left";
+  } else {
+    if (dy > 0 && direction !== "up") nextDirection = "down";
+    else if (dy < 0 && direction !== "down") nextDirection = "up";
+  }
+
+}
+function initGame() {
   gameStartSound.play()
   calculateGridDimensions(); // First thing!
+  setupSwipeControls()
 
   // Reset game state
   snake = [];
@@ -340,11 +314,8 @@ function initGame() {
 
   if (gameInterval) clearInterval(gameInterval);
   gameInterval = setInterval(gameLoop, currentSpeed);
-  
-  setupTapControls()
+
   draw();
-
-
 }
 
 function gameLoop() {
@@ -366,6 +337,11 @@ function gameLoop() {
     case "right":
       head.x++;
       break;
+  }
+
+  //Increasing speed by 10 after every 50 points
+  if(score%50==0 && score!=0 && score<200){
+     initialSpeed-=10
   }
 
   // Wall collision
@@ -451,10 +427,11 @@ function gameLoop() {
 }
 
 function draw() {
+
   // Create a container for this frame's elements
   const frameContainer = document.createElement('div');
   frameContainer.className = 'game-frame';
-  
+
   // Draw snake
   snake.forEach((part, index) => {
     const snakePart = document.createElement("div");
@@ -465,6 +442,7 @@ function draw() {
   });
 
   // Draw apples
+
   apples.forEach(apple => {
     const appleElement = document.createElement("div");
     appleElement.className = "apple glow";
@@ -479,6 +457,7 @@ function draw() {
   document.querySelectorAll(".point-animation").forEach((el) => {
     animationsContainer.appendChild(el);
   });
+
   frameContainer.appendChild(animationsContainer);
 
   // Efficient DOM update
@@ -488,6 +467,7 @@ function draw() {
 }
 
 function showPointsAnimation(x, y) {
+  console.log('Points called')
   const animation = document.createElement("div");
   animation.className = "point-animation";
   animation.textContent = "+10";
@@ -500,11 +480,10 @@ function showPointsAnimation(x, y) {
       animation.parentNode.removeChild(animation);
     }
   }, 800);
-
- 
 }
 
 function showCelebration() {
+  console.log('Celebration called')
   const celebration = document.createElement("div");
   celebration.className = "celebration";
   celebration.textContent = "GREAT!";
