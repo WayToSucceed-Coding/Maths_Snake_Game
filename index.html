@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Math Snake</title>
   <link rel="stylesheet" href="style.css" />
   `
@@ -54,7 +54,9 @@
           <div id="lives">Lives: 3</div>
         </div>
       </div>
-      <div id="game-board"></div>
+      <div id="game-board">
+        <div id="controls-layer"></div> <!-- Only for touch controls -->
+      </div>
     </div>
 
 
