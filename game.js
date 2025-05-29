@@ -285,7 +285,7 @@ function initGame() {
   direction = "right";
   nextDirection = "right";
   isGameActive = true;
-  currentSpeed = initialSpeed;
+  currentSpeed = 650;
   usedValues = new Set(); // Reset used values
 
   // Clear the game board
