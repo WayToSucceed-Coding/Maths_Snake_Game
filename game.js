@@ -340,8 +340,8 @@ function gameLoop() {
   }
 
   //Increasing speed by 10 after every 50 points
-  if(score%50==0 && score!=0 && score<200){
-     initialSpeed-=10
+  if(score%50==0 && score!=0 && initialSpeed<200){
+     initialSpeed-=40
   }
 
   // Wall collision
