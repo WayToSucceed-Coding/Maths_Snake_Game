@@ -340,8 +340,8 @@ function gameLoop() {
   }
 
   //Increasing speed by 10 after every 50 points
-  if(score%50==0 && score!=0 && initialSpeed<200){
-     initialSpeed-=40
+  if (score % 50 == 0 && score != 0 && initialSpeed < 200) {
+    initialSpeed -= 40
   }
 
   // Wall collision
@@ -351,15 +351,15 @@ function gameLoop() {
     head.y < 0 ||
     head.y >= grid_height
   ) {
-    gameOver();
-    return;
+    handleCollision();
+    return; // Skip the rest of this frame
   }
 
   // Self collision
   for (let i = 0; i < snake.length; i++) {
     if (snake[i].x === head.x && snake[i].y === head.y) {
-      gameOver();
-      return;
+      handleCollision();
+      return; // Skip the rest of this frame
     }
   }
 
@@ -425,7 +425,44 @@ function gameLoop() {
 
   draw();
 }
+function handleCollision() {
+   lives--;
+  updateLives();
+  wrongSound.play();
+  
+  if (lives <= 0) {
+    gameOver();
+    return;
+  }
+  
+  // Reset snake position
+  resetSnake();
+}
 
+function resetSnake() {
+
+  
+   // Store current length before reset
+  const currentLength = snake.length;
+
+  // Clear the snake
+  snake = [];
+
+  // Create new snake in starting position with the same length
+  const initialX = Math.floor(grid_width / 4);
+  const initialY = Math.floor(grid_height / 2);
+
+  for (let i = 0; i < currentLength; i++) {
+    snake.push({ x: initialX - i, y: initialY });
+  }
+
+  // Reset direction
+  direction = "right";
+  nextDirection = "right";
+
+  // Redraw
+  draw();
+}
 function draw() {
 
   // Create a container for this frame's elements
